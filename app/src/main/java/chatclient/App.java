@@ -1,12 +1,12 @@
 package chatclient;
 
-import java.util.Map;
 
 import chatclient.scenes.ChatRoom;
 import chatclient.scenes.Login;
 import chatclient.scenes.Screen;
 import chatclient.scenes.Servers;
 
+import java.util.Map;
 import java.util.HashMap;
 import javafx.application.Application;
 import javafx.scene.Scene;

@@ -12,3 +12,5 @@ plugins {
 
 rootProject.name = 'chatclient'
 include('app')
+
+include 'app:src:main:httpclientdemo'

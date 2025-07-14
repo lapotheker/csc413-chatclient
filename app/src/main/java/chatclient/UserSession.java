@@ -16,28 +16,33 @@ public class UserSession {
      * @return a singleton instance of UserSession
      */
     public static UserSession getInstance(){
-        throw new UnsupportedOperationException("need to implement");
+        if (session == null) {
+            session = new UserSession();
+        }
+        return session;
     }
 
     /**
-     * 
+     *
      * @param username username of user
      * @param userId user's userId
      * @param token user's API token.
      */
-    public  void initSession(String username, int userId, String token){
-        throw new UnsupportedOperationException("need to implement");
+    public void initSession(String username, int userId, String token){
+        this.username = username;
+        this.userId = userId;
+        this.token = token;
     }
 
     /**
      * Get a users username from session
-     * @return users id
+     * @return users username
      */
     public String getUsername() {
         if(Objects.isNull(username) || username.length() == 0){
             throw new IllegalStateException("User session it not correctly initialized :: username is missing");
         }
-        throw new UnsupportedOperationException("need to implement");
+        return username;
     }
 
     /**
@@ -48,7 +53,7 @@ public class UserSession {
         if(this.userId <= 0){
             throw new IllegalStateException("User session it not correctly initialized :: userId is missing");
         }
-        throw new UnsupportedOperationException("need to implement");
+        return userId;
     }
 
     /**
@@ -59,7 +64,7 @@ public class UserSession {
         if(Objects.isNull(token)){
             throw new IllegalStateException("User session it not correctly initialized :: token is missing");
         }
-        throw new UnsupportedOperationException("need to implement");
+        return token;
     }
 
     /**
