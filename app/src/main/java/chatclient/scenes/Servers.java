@@ -126,7 +126,6 @@ public class Servers implements Screen {
                     for (int i = 0; i < roomsArray.size(); i++) {
                         JsonObject roomObj = roomsArray.get(i).getAsJsonObject();
                         ChatRoomModel room = new ChatRoomModel(
-                                roomObj.get("id").getAsInt(),
                                 roomObj.get("room_name").getAsString(),
                                 roomObj.get("owner_id").getAsInt(),
                                 roomObj.get("user_count").getAsInt()
@@ -157,7 +156,7 @@ public class Servers implements Screen {
 
         UserSession userSession = UserSession.getInstance();
         ChatRoom chatRoom = new ChatRoom(mainStage);
-        boolean connected = chatRoom.initWebsocket(selectedRoom.getId(), userSession.getUserId(), selectedRoom.getRoom_Name());
+        boolean connected = chatRoom.initWebsocket(selectedRoom.getRoomId(), userSession.getUserId(), selectedRoom.getRoomName());
 
         if (connected) {
             Platform.runLater(() -> {

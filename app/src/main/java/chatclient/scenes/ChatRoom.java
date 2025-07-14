@@ -3,6 +3,7 @@ package chatclient.scenes;
 import chatclient.UserSession;
 import chatclient.listviewcells.MessageModel;
 import chatclient.listviewcells.MessageListCell;
+import chatclient.listviewcells.ChatRoomModel;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
