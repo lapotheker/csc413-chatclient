@@ -1,5 +1,6 @@
 package chatclient.scenes;
 
+import java.util.Optional;
 import javax.websocket.CloseReason;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -76,6 +77,24 @@ public class ChatRoom implements Screen {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        Button deleteButton = new Button("Delete Room");
+        deleteButton.setStyle("-fx-background-color: #fe0606; -fx-text-fill: white;");
+        deleteButton.setOnAction(e -> {
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setTitle("Delete Room");
+            confirmAlert.setHeaderText("Are you sure you want to delete this room?");
+
+            Optional<ButtonType> result = confirmAlert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                closeWebSocket();
+
+                if (deleteRoom()) {
+                    Servers serverScene = new Servers(stage);
+                    stage.getScene().setRoot(serverScene.build());
+                }
+            }
+        });
+
         leaveButton = new Button("Leave Room");
         leaveButton.setOnAction(e -> {
             closeWebSocket();
@@ -83,7 +102,7 @@ public class ChatRoom implements Screen {
             stage.getScene().setRoot(serverScene.build());
         });
 
-        topSection.getChildren().addAll(roomNameLabel, spacer, leaveButton);
+        topSection.getChildren().addAll(roomNameLabel, spacer, deleteButton, leaveButton);
 
         HBox centerSection = new HBox(10);
         centerSection.setPadding(new Insets(10));
@@ -415,4 +434,45 @@ public class ChatRoom implements Screen {
             e.printStackTrace();
         }
     }
+    public boolean deleteRoom() {
+        try {
+            UserSession userSession = UserSession.getInstance();
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://csc413.ajsouza.com/api/rooms/" + currentRoomId))
+                    .header("Authorization", "Bearer " + userSession.getToken())
+                    .header("Content-Type", "application/json")
+                    .DELETE()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonObject responseJson = gson.fromJson(response.body(), JsonObject.class);
+                String status = responseJson.get("status").getAsString();
+
+                if ("success".equals(status)) {
+                    System.out.println("Room deleted successfully");
+                    return true;
+                } else {
+                    String errorMessage = responseJson.has("message") ?
+                            responseJson.get("message").getAsString() : "Unknown error";
+                    System.err.println("Failed to delete room: " + errorMessage);
+                    showAlert("Delete Error", "Failed to delete room: " + errorMessage);
+                    return false;
+                }
+            } else {
+                System.err.println("HTTP error: " + response.statusCode());
+                showAlert("Delete Error", "HTTP error: " + response.statusCode());
+                return false;
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error deleting room: " + e.getMessage());
+            e.printStackTrace();
+            showAlert("Delete Error", "Failed to delete room: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
