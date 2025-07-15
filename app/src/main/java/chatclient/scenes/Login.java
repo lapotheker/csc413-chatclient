@@ -42,37 +42,32 @@ public class Login implements Screen {
         root.setPadding(new Insets(50));
         root.setAlignment(Pos.CENTER);
 
-        // Title
         Label titleLabel = new Label("Chat Client Login");
         titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
 
-        // Username field
         Label usernameLabel = new Label("Username:");
         usernameField = new TextField();
         usernameField.setPromptText("Enter your username");
         usernameField.setMaxWidth(300);
 
-        // Password field
         Label passwordLabel = new Label("Password:");
         passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
         passwordField.setMaxWidth(300);
 
-        // Buttons
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
 
         loginButton = new Button("Login");
         loginButton.setOnAction(this::handleLogin);
-        loginButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        loginButton.setStyle("-fx-background-color: #3aed4f; -fx-text-fill: white;");
 
         resetButton = new Button("Reset");
         resetButton.setOnAction(this::handleReset);
-        resetButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
+        resetButton.setStyle("-fx-background-color: #636363; -fx-text-fill: white;");
 
         buttonBox.getChildren().addAll(loginButton, resetButton);
 
-        // Add all components to root
         root.getChildren().addAll(titleLabel, usernameLabel, usernameField,
                 passwordLabel, passwordField, buttonBox);
 

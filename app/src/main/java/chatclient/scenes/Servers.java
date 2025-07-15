@@ -67,7 +67,7 @@ public class Servers implements Screen {
 
         joinButton = new Button("Join Room");
         joinButton.setOnAction(this::connectToRoom);
-        joinButton.setDisable(true); // Disabled until room is selected
+        joinButton.setDisable(true);
 
         createButton = new Button("Create Room");
         createButton.setOnAction(this::handleCreateRoom);
@@ -83,9 +83,12 @@ public class Servers implements Screen {
 
         HBox createRoomSection = new HBox(10);
         createRoomSection.setAlignment(Pos.CENTER);
+
         roomNameField = new TextField();
         roomNameField.setPromptText("Enter room name");
         roomNameField.setMaxWidth(200);
+
+        createRoomSection.getChildren().add(roomNameField);
 
         topSection.getChildren().addAll(titleLabel, buttonRow, createRoomSection);
 
@@ -125,10 +128,11 @@ public class Servers implements Screen {
                     servers.clear();
                     for (int i = 0; i < roomsArray.size(); i++) {
                         JsonObject roomObj = roomsArray.get(i).getAsJsonObject();
+                        System.out.println("Room JSON: " + roomObj.toString());
                         ChatRoomModel room = new ChatRoomModel(
+                                roomObj.get("id").getAsInt(),
                                 roomObj.get("room_name").getAsString(),
-                                roomObj.get("owner_id").getAsInt(),
-                                roomObj.get("user_count").getAsInt()
+                                roomObj.get("owner_id").getAsInt()
                         );
                         servers.add(room);
                     }

@@ -1,5 +1,12 @@
 package chatclient.scenes;
 
+import javax.websocket.CloseReason;
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import chatclient.UserSession;
 import chatclient.listviewcells.MessageModel;
 import chatclient.listviewcells.MessageListCell;
@@ -71,13 +78,7 @@ public class ChatRoom implements Screen {
 
         leaveButton = new Button("Leave Room");
         leaveButton.setOnAction(e -> {
-            try {
-                if (webSocketSession != null && webSocketSession.isOpen()) {
-                    webSocketSession.close();
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            closeWebSocket();
             Servers serverScene = new Servers(stage);
             stage.getScene().setRoot(serverScene.build());
         });
@@ -150,31 +151,69 @@ public class ChatRoom implements Screen {
             String wsUrl = String.format("wss://csc413.ajsouza.com/chat?room_id=%d&user_id=%d&token=%s",
                     roomId, userId, userSession.getToken());
 
+            System.out.println("=== WebSocket Connection Debug ===");
+            System.out.println("WebSocket URL: " + wsUrl);
+            System.out.println("Room ID: " + roomId);
+            System.out.println("User ID: " + userId);
+            System.out.println("Token: " + userSession.getToken());
+            System.out.println("Room Name: " + roomName);
+
+            CountDownLatch connectionLatch = new CountDownLatch(1);
+            final boolean[] connectionSuccess = {false};
+
             Endpoint endpoint = new Endpoint() {
                 @Override
                 public void onOpen(Session session, EndpointConfig config) {
+                    System.out.println("✓ WebSocket connected successfully");
                     webSocketSession = session;
+                    connectionSuccess[0] = true;
                     session.addMessageHandler(new MessageHandler.Whole<String>() {
                         @Override
                         public void onMessage(String message) {
+                            System.out.println("Received WebSocket message: " + message);
                             handleWebSocketMessage(message);
                         }
                     });
+                    connectionLatch.countDown();
+                }
+
+                @Override
+                public void onClose(Session session, CloseReason closeReason) {
+                    System.out.println("✗ WebSocket connection closed: " + closeReason.getReasonPhrase());
+                    System.out.println("Close code: " + closeReason.getCloseCode());
+                    webSocketSession = null;
                 }
 
                 @Override
                 public void onError(Session session, Throwable throwable) {
+                    System.err.println("✗ WebSocket error: " + throwable.getMessage());
                     throwable.printStackTrace();
+                    webSocketSession = null;
+                    connectionLatch.countDown();
                 }
             };
 
             container.connectToServer(endpoint, URI.create(wsUrl));
 
-            Thread.sleep(1000);
+            boolean connected = connectionLatch.await(10, TimeUnit.SECONDS);
 
-            return webSocketSession != null && webSocketSession.isOpen();
+            System.out.println("Connection attempt completed:");
+            System.out.println("- Latch countdown completed: " + connected);
+            System.out.println("- Connection success: " + connectionSuccess[0]);
+            System.out.println("- WebSocket session exists: " + (webSocketSession != null));
+            System.out.println("- WebSocket session is open: " + (webSocketSession != null && webSocketSession.isOpen()));
+
+            if (!connected) {
+                System.err.println("✗ WebSocket connection timeout after 10 seconds");
+                return false;
+            }
+
+            boolean finalResult = webSocketSession != null && webSocketSession.isOpen();
+            System.out.println("Final connection result: " + finalResult);
+            return finalResult;
 
         } catch (Exception e) {
+            System.err.println("✗ Failed to initialize WebSocket: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -190,26 +229,53 @@ public class ChatRoom implements Screen {
                     case "message":
                         String text = messageObj.get("message").getAsString();
                         String username = messageObj.get("username").getAsString();
-                        MessageModel msg = new MessageModel(text, username, "now", null);
+                        String timestamp = messageObj.has("timestamp") ?
+                                messageObj.get("timestamp").getAsString() : "now";
+
+                        MessageModel msg = new MessageModel(text, username, timestamp, null);
                         messages.add(msg);
+
+                        messagesView.scrollTo(messages.size() - 1);
                         break;
+
                     case "join":
+                        String joinedUser = messageObj.get("username").getAsString();
+                        System.out.println("User joined: " + joinedUser);
                         loadUsersPane();
                         break;
+
                     case "leave":
+                        String leftUser = messageObj.get("username").getAsString();
+                        System.out.println("User left: " + leftUser);
                         loadUsersPane();
+                        break;
+
+                    case "error":
+                        String errorMsg = messageObj.get("message").getAsString();
+                        System.err.println("WebSocket error: " + errorMsg);
+                        showAlert("Error", errorMsg);
+                        break;
+
+                    default:
+                        System.out.println("Unknown event: " + event);
                         break;
                 }
             });
 
         } catch (Exception e) {
+            System.err.println("Error handling WebSocket message: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private void sendMessage() {
         String text = messageField.getText().trim();
-        if (text.isEmpty() || webSocketSession == null || !webSocketSession.isOpen()) {
+        if (text.isEmpty()) {
+            return;
+        }
+
+        if (webSocketSession == null || !webSocketSession.isOpen()) {
+            showAlert("Connection Error", "WebSocket connection is not available");
             return;
         }
 
@@ -222,14 +288,60 @@ public class ChatRoom implements Screen {
             messageObj.addProperty("username", userSession.getUsername());
             messageObj.addProperty("message", text);
 
-            webSocketSession.getBasicRemote().sendText(gson.toJson(messageObj));
+            String jsonMessage = gson.toJson(messageObj);
+            System.out.println("Sending message: " + jsonMessage);
+
+            webSocketSession.getBasicRemote().sendText(jsonMessage);
             messageField.clear();
 
         } catch (Exception e) {
+            System.err.println("Error sending message: " + e.getMessage());
             e.printStackTrace();
+            showAlert("Send Error", "Failed to send message: " + e.getMessage());
         }
     }
 
+    public void closeWebSocket() {
+        if (webSocketSession != null && webSocketSession.isOpen()) {
+            try {
+                UserSession userSession = UserSession.getInstance();
+                JsonObject leaveObj = new JsonObject();
+                leaveObj.addProperty("event", "leave");
+                leaveObj.addProperty("room_id", currentRoomId);
+                leaveObj.addProperty("user_id", userSession.getUserId());
+                leaveObj.addProperty("username", userSession.getUsername());
+
+                webSocketSession.getBasicRemote().sendText(gson.toJson(leaveObj));
+
+                webSocketSession.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "User left room"));
+
+            } catch (Exception e) {
+                System.err.println("Error closing WebSocket: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                webSocketSession = null;
+            }
+        }
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    public boolean isConnected() {
+        return webSocketSession != null && webSocketSession.isOpen();
+    }
+
+    public void reconnect() {
+        if (webSocketSession == null || !webSocketSession.isOpen()) {
+            UserSession userSession = UserSession.getInstance();
+            initWebsocket(currentRoomId, userSession.getUserId(), currentRoomName);
+        }
+    }
     /**
      * helper function to send an API request
      * to get a list of users for a given
@@ -265,7 +377,6 @@ public class ChatRoom implements Screen {
             e.printStackTrace();
         }
     }
-
     /**
      * helper function to send an API request
      * to get a list of messages for a given

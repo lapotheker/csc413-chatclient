@@ -8,10 +8,10 @@ public class ChatRoomModel {
     private final SimpleIntegerProperty ownerId = new SimpleIntegerProperty();
     private final SimpleIntegerProperty roomId = new SimpleIntegerProperty();
 
-    public ChatRoomModel(String roomName, int ownerId, int roomId) {
+    public ChatRoomModel(int roomId, String roomName, int ownerId) {
+        this.roomId.set(roomId);
         this.roomName.set(roomName);
         this.ownerId.set(ownerId);
-        this.roomId.set(roomId);
     }
 
     public String getRoomName() {
