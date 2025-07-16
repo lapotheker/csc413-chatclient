@@ -38,8 +38,8 @@ public class Login implements Screen {
      *  -- button to reset fields
      */
     public Pane build() {
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(50));
+        VBox root = new VBox(30);
+        root.setPadding(new Insets(60));
         root.setAlignment(Pos.CENTER);
 
         Label titleLabel = new Label("Chat Client Login");
@@ -48,14 +48,14 @@ public class Login implements Screen {
         Label usernameLabel = new Label("Username:");
         usernameField = new TextField();
         usernameField.setPromptText("Enter your username");
-        usernameField.setMaxWidth(300);
+        usernameField.setMaxWidth(400);
 
         Label passwordLabel = new Label("Password:");
         passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
-        passwordField.setMaxWidth(300);
+        passwordField.setMaxWidth(400);
 
-        HBox buttonBox = new HBox(10);
+        HBox buttonBox = new HBox(20);
         buttonBox.setAlignment(Pos.CENTER);
 
         loginButton = new Button("Login");
